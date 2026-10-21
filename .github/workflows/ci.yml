@@ -26,6 +26,15 @@ jobs:
         run: |
           safety scan --save-json safety-report.json || true
           
+      # 新增步骤：在网页的 Summary 页面直接展示 JSON 报告
+      - name: Print Report to Summary
+        run: |
+          echo '### Safety Scan JSON Report' >> $GITHUB_STEP_SUMMARY
+          echo '```json' >> $GITHUB_STEP_SUMMARY
+          cat safety-report.json >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+      # 原来的步骤：把 JSON 作为附件下载
       - name: Upload Safety Report
         uses: actions/upload-artifact@v4
         with:
