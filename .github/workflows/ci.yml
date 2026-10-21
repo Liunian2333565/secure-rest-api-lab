@@ -6,10 +6,8 @@ on:
 
 jobs:
   security:
-    # 1. 将 runner 固定为 ubuntu-24.04，避免自动迁移到 Ubuntu 26 带来的不确定性
     runs-on: ubuntu-24.04
     steps:
-      # 2. 升级 action 版本以使用 Node 24 运行时
       - name: Checkout Code
         uses: actions/checkout@v6
 
@@ -22,29 +20,29 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install safety
+          pip install pip-audit
 
-      # 3. 明确要求 Safety 生成 JSON 文件
-      - name: Run Safety SCA Scan
+      # 使用 pip-audit 进行 SCA 扫描并直接生成 JSON 文件
+      - name: Run SCA Scan (pip-audit)
         run: |
-          safety scan --save-json safety-report.json || true
+          pip-audit -r requirements.txt --format=json -o safety-report.json || true
 
-      # 4. 将 JSON 报告直接输出到 GitHub Actions Summary 页面，方便查看
+      # 将报告输出到 Summary 页面以便直接查看截图
       - name: Print Report to Summary
-        if: always() # 即使上一步失败也执行，确保能看到错误信息
+        if: always()
         run: |
           if [ -f safety-report.json ]; then
-            echo '### Safety Scan JSON Report' >> $GITHUB_STEP_SUMMARY
+            echo '### SCA Scan JSON Report' >> $GITHUB_STEP_SUMMARY
             echo '```json' >> $GITHUB_STEP_SUMMARY
             cat safety-report.json >> $GITHUB_STEP_SUMMARY
             echo '```' >> $GITHUB_STEP_SUMMARY
           else
-            echo "### Safety Scan Report" >> $GITHUB_STEP_SUMMARY
-            echo "safety-report.json was not generated." >> $GITHUB_STEP_SUMMARY
+            echo "### Report Error" >> $GITHUB_STEP_SUMMARY
+            echo "JSON report was not generated." >> $GITHUB_STEP_SUMMARY
           fi
 
-      # 5. 上传 artifact，并设置 if-no-files-found 以在文件缺失时报错
-      - name: Upload Safety Report
+      # 上传生成的 JSON 文件
+      - name: Upload SCA Report
         uses: actions/upload-artifact@v7
         with:
           name: safety-report
