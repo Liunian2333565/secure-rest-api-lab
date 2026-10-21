@@ -80,8 +80,8 @@ def login():
         JWT_SECRET,
         algorithm="HS256",
     )
-        # nosec B106 - "Bearer" is a standard OAuth2 token type, not a hardcoded password
-    return jsonify(token=token, token_type="Bearer", expires_in=3600)
+           # 推荐写法：直接写在行尾
+    return jsonify(token=token, token_type="Bearer", expires_in=3600)  # nosec B106
 
 # 4. 接口 2：获取数据（受保护）
 @app.get("/api/data")
