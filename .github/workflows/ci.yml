@@ -20,31 +20,38 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install pip-audit
+          pip install bandit pip-audit
 
-      # 使用 pip-audit 进行 SCA 扫描并直接生成 JSON 文件
+      # 1. SAST: Bandit 扫描源码，生成你想要的干净 JSON
+      - name: Run SAST Scan (Bandit)
+        run: |
+          bandit -r . -f json -o bandit-report.json || true
+
+      # 2. SCA: pip-audit 扫描依赖漏洞，生成 JSON
       - name: Run SCA Scan (pip-audit)
         run: |
-          pip-audit -r requirements.txt --format=json -o safety-report.json || true
+          pip-audit -r requirements.txt --format=json -o sca-report.json || true
 
-      # 将报告输出到 Summary 页面以便直接查看截图
-      - name: Print Report to Summary
+      # 3. 在页面直接预览两个报告
+      - name: Print Reports to Summary
         if: always()
         run: |
-          if [ -f safety-report.json ]; then
-            echo '### SCA Scan JSON Report' >> $GITHUB_STEP_SUMMARY
-            echo '```json' >> $GITHUB_STEP_SUMMARY
-            cat safety-report.json >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-          else
-            echo "### Report Error" >> $GITHUB_STEP_SUMMARY
-            echo "JSON report was not generated." >> $GITHUB_STEP_SUMMARY
-          fi
+          echo '### SAST (Bandit) JSON Report' >> $GITHUB_STEP_SUMMARY
+          echo '```json' >> $GITHUB_STEP_SUMMARY
+          cat bandit-report.json >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          
+          echo '### SCA (pip-audit) JSON Report' >> $GITHUB_STEP_SUMMARY
+          echo '```json' >> $GITHUB_STEP_SUMMARY
+          cat sca-report.json >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
 
-      # 上传生成的 JSON 文件
-      - name: Upload SCA Report
+      # 4. 上传两个报告作为 Artifact
+      - name: Upload Security Reports
         uses: actions/upload-artifact@v7
         with:
-          name: safety-report
-          path: safety-report.json
+          name: security-reports
+          path: |
+            bandit-report.json
+            sca-report.json
           if-no-files-found: error
